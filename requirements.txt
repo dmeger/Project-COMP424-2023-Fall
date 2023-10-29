@@ -1,0 +1,5 @@
+matplotlib==3.5.1
+numpy==1.22.2
+pytest==7.0.1
+tqdm==4.62.3
+click==8.0.4
