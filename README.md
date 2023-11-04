@@ -48,7 +48,7 @@ There is some randomness (coming from the initial game setup and potentially age
 python simulator.py --player_1 random_agent --player_2 random_agent --autoplay
 ```
 
-During autoplay, boards are drawn randomly between size `--board_size_min` and `--board_size_max` for each iteration.
+During autoplay, boards are drawn randomly between size `--board_size_min` and `--board_size_max` for each iteration. You may try various ranges for your own information and development by providing these variables on the command-line. However, the defaults (to be used during grading) are 6 and 12, so ensure the timing limits are satisfied for every board in this size range. 
 
 **Notes**
 
@@ -84,7 +84,8 @@ You will submit only one code file for grading: student_agent.py. Here are a few
 2. Ensure student_agent does not have any additional imports.
 3. The `StudentAgent` class *must be* decorated with exactly the name `student_agent`. Do not add any comments or change that line at all, as we will be interacting with it via scripting as we auto-run your agents in the tournament. (Common mistake if you did most of your dev in a differently named file, best_agent, or similar, and then copied the contents without checking).
 4. You can add other variables and helper functions within the file, either inside the StudentAgent class, or at global scope.
-5. As a final test before submitting, make 100% sure the player you wish to be evaluated on runs correctly with the exact command we'll use in auto-grading ```python simulator.py --player_1 random_agent --player_2 student_agent --autoplay```
+5. Check the time limits are satisfied for all board sizes in the range 6-12, inclusive.
+6. As a final test before submitting, make 100% sure the player you wish to be evaluated on runs correctly with the exact command we'll use in auto-grading ```python simulator.py --player_1 random_agent --player_2 student_agent --autoplay```
 
 ## Full API
 
