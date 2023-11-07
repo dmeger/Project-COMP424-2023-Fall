@@ -80,6 +80,7 @@ There can only be one file called student_agent.py, and that's already perfectly
 
 You will submit only one code file for grading: student_agent.py. Here are a few last minute things to double-check, since your agent must follow some special rules to make it possible to run in auto-grading. Failing to follow the instructions below precisely risks an automatic assignment of "poor" for the performance grade as we don't have time to debug everyone's solution.
 
+0. Set up your authors.yaml and report PDF following the Overleaf (PDF) instructions. Then finalize this code.
 1. Check that you didn't modify anything outside of student_agent. You can use git status and git diff for this.
 2. Ensure student_agent does not have any additional imports.
 3. The `StudentAgent` class *must be* decorated with exactly the name `student_agent`. Do not add any comments or change that line at all, as we will be interacting with it via scripting as we auto-run your agents in the tournament. (Common mistake if you did most of your dev in a differently named file, best_agent, or similar, and then copied the contents without checking).
