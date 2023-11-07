@@ -101,8 +101,23 @@ class World:
             self.board_size = board_size
             logger.info(f"Setting board size to {self.board_size}x{self.board_size}")
 
+        # Whose turn to step
+        self.turn = 0
+
+        # Time taken by each player
+        self.p0_time = []
+        self.p1_time = []
+
+        # Cache to store and use the data
+        self.results_cache = ()
+        # UI Engine
+        self.display_ui = display_ui
+        self.display_delay = display_delay
+        self.display_save = display_save
+        self.display_save_path = display_save_path
+
         # Index in dim2 represents [Up, Right, Down, Left] respectively
-        # Record barriers and boarders for each block
+        # Record barriers and borders for each block
         self.chess_board = np.zeros((self.board_size, self.board_size, 4), dtype=bool)
 
         # Set borders
@@ -111,11 +126,15 @@ class World:
         self.chess_board[-1, :, 2] = True
         self.chess_board[:, -1, 1] = True
 
-        # Maximum Steps
+        # Maximum Steps is how far agents will move each turn (at max)
         self.max_step = (self.board_size + 1) // 2
+        
+        # Fill some random barriers. Few enough to ensure we never start 
+        # with a full wall
+        num_barriers = self.board_size // 2 - 1
 
         # Random barriers (symmetric)
-        for _ in range(self.max_step):
+        for _ in range(num_barriers):
             pos = np.random.randint(0, self.board_size, size=2)
             r, c = pos
             dir = np.random.randint(0, 4)
@@ -132,26 +151,17 @@ class World:
         # Random start position (symmetric but not overlap)
         self.p0_pos = np.random.randint(0, self.board_size, size=2)
         self.p1_pos = self.board_size - 1 - self.p0_pos
-        while np.array_equal(self.p0_pos, self.p1_pos):
+
+        # Check that initialization does not fall into a weird case, 
+        # such as agent stuck in tiny box to begin. Repeat if necessary.
+        self.initial_end, _, _ = self.check_endgame()
+        while np.array_equal(self.p0_pos, self.p1_pos) or self.initial_end:
             self.p0_pos = np.random.randint(0, self.board_size, size=2)
             self.p1_pos = self.board_size - 1 - self.p0_pos
-        # Whose turn to step
-        self.turn = 0
+            self.initial_end, _, _ = self.check_endgame()  
+              
+        assert(not self.initial_end)
 
-        # Check initialization
-        self.initial_end, _, _ = self.check_endgame()
-
-        # Time taken by each player
-        self.p0_time = 0
-        self.p1_time = 0
-
-        # Cache to store and use the data
-        self.results_cache = ()
-        # UI Engine
-        self.display_ui = display_ui
-        self.display_delay = display_delay
-        self.display_save = display_save
-        self.display_save_path = display_save_path
         if display_ui:
             # Initialize UI Engine
             logger.info(
@@ -183,9 +193,9 @@ class World:
             Time taken by the player
         """
         if not self.turn:
-            self.p0_time += time_taken
+            self.p0_time.append(time_taken)
         else:
-            self.p1_time += time_taken
+            self.p1_time.append(time_taken)
 
     def step(self):
         """
@@ -209,7 +219,8 @@ class World:
                 tuple(adv_pos),
                 self.max_step,
             )
-            self.update_player_time(time() - start_time)
+            time_taken = time() - start_time
+            self.update_player_time(time_taken)
 
             next_pos = np.asarray(next_pos, dtype=cur_pos.dtype)
             if not self.check_boundary(next_pos):
@@ -244,7 +255,7 @@ class World:
         # Print out each step
         # print(self.turn, next_pos, dir)
         logger.info(
-            f"Player {self.player_names[self.turn]} moves to {next_pos} facing {self.dir_names[dir]}"
+            f"Player {self.player_names[self.turn]} moves to {next_pos} facing {self.dir_names[dir]}. Time taken this turn (in seconds): {time_taken}"
         )
         if not self.turn:
             self.p0_pos = next_pos
@@ -285,7 +296,7 @@ class World:
         barrier_dir : int
             The direction of the barrier.
         """
-        # Endpoint already has barrier or is boarder
+        # Endpoint already has barrier or is border
         r, c = end_pos
         if self.chess_board[r, c, barrier_dir]:
             return False
@@ -408,34 +419,36 @@ class World:
         adv_pos : tuple
             The position of the adversary.
         """
-        ori_pos = deepcopy(my_pos)
         steps = np.random.randint(0, self.max_step + 1)
-        # Random Walk
+
+        # Pick steps random but allowable moves
         for _ in range(steps):
             r, c = my_pos
-            dir = np.random.randint(0, 4)
-            m_r, m_c = self.moves[dir]
-            my_pos = (r + m_r, c + m_c)
 
-            # Special Case enclosed by Adversary
-            k = 0
-            while self.chess_board[r, c, dir] or my_pos == adv_pos:
-                k += 1
-                if k > 300:
-                    break
-                dir = np.random.randint(0, 4)
-                m_r, m_c = self.moves[dir]
-                my_pos = (r + m_r, c + m_c)
+            # Build a list of the moves we can make
+            allowed_dirs = [ d                                
+                for d in range(0,4)                                      # 4 moves possible
+                if not self.chess_board[r,c,d] and                       # chess_board True means wall
+                not adv_pos == (r+self.moves[d][0],c+self.moves[d][1])]  # cannot move through Adversary
 
-            if k > 300:
-                my_pos = ori_pos
+            if len(allowed_dirs)==0:
+                # If no possible move, we must be enclosed by our Adversary
                 break
 
-        # Put Barrier
-        dir = np.random.randint(0, 4)
+            random_dir = allowed_dirs[np.random.randint(0, len(allowed_dirs))]
+
+            # This is how to update a row,col by the entries in moves 
+            # to be consistent with game logic
+            m_r, m_c = self.moves[random_dir]
+            my_pos = (r + m_r, c + m_c)
+
+        # Final portion, pick where to put our new barrier, at random
         r, c = my_pos
-        while self.chess_board[r, c, dir]:
-            dir = np.random.randint(0, 4)
+        # Possibilities, any direction such that chess_board is False
+        allowed_barriers=[i for i in range(0,4) if not self.chess_board[r,c,i]]
+        # Sanity check, no way to be fully enclosed in a square, else game already ended
+        assert len(allowed_barriers)>=1 
+        dir = allowed_barriers[np.random.randint(0, len(allowed_barriers))]
 
         return my_pos, dir
 

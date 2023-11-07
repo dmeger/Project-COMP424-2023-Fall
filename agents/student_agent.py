@@ -2,6 +2,9 @@
 from agents.agent import Agent
 from store import register_agent
 import sys
+import numpy as np
+from copy import deepcopy
+import time
 
 
 @register_agent("student_agent")
@@ -36,5 +39,14 @@ class StudentAgent(Agent):
 
         Please check the sample implementation in agents/random_agent.py or agents/human_agent.py for more details.
         """
+
+        # Some simple code to help you with timing. Consider checking 
+        # time_taken during your search and breaking with the best answer
+        # so far when it nears 2 seconds.
+        start_time = time.time()
+        time_taken = time.time() - start_time
+        
+        print("My AI's turn took ", time_taken, "seconds.")
+
         # dummy return
         return my_pos, self.dir_map["u"]
