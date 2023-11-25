@@ -65,8 +65,12 @@ class MCTS():
     """
     Function conditions:
     - generate_children: should return an empty list if the state is terminal
-    - utilility: should return a value between -1 and 1, the utility function, should be different for final game state and intermediate game states
-    - child_expansion_policy: needs to select a single child, and remove it from the list of unvisited children
+    - utilility: should return a value between -1 and 1, the utility function, 
+        should be different for final game state and intermediate game states
+        in the final game state, we want to return 1 if we won, -1 if we lost, and note use the heuristic
+        in the intermediate game states, we want to return the heuristic value of the board
+
+    - child_expansion_policy: needs to select and return a single child, and remove it from the list of unvisited children
 
     """
     
