@@ -31,52 +31,47 @@ class StudentAgent(Agent):
 
     #helper functions
     def all_valid_moves(self, chess_board, my_pos, max_step, adv_pos):
-        """
-        Return all valid moves for the agent of the form ((x+i, y+j), dir) where |i|+|j| <= max_steps and dir is not already placed
-        :param chess_board: the current chess board
-        :param my_pos: the position of my agent
-        :param max_step: the maximum number of steps
-        :param adv_pos: the position of the adversary agent
-
-        :return: a list of valid moves
-        """
         valid_moves = []
 
-        # Get position of the adversary
-        adv_x, adv_y = adv_pos
-
-        # BFS to find valid moves
+        # BFS
         state_queue = [(my_pos, 0)]
         visited = {my_pos}
-        
+
         while state_queue:
             cur_pos, cur_step = state_queue.pop(0)
-            x, y = cur_pos
-            
+
             if cur_step == max_step:
                 break
-            
-            for dir, move in enumerate(moves):
-                #check if there is a barrier along the direction of the move
-                if chess_board[x, y, dir]:
-                    continue
 
-                #get the new position after the move
-                next_pos = tuple(np.array(cur_pos) + np.array(move))
-                
-                # Check if the move goes out of bounds or to the adversary's position
-                if not (0 <= next_pos[0] < chess_board.shape[0] and 0 <= next_pos[1] < chess_board.shape[1]) or next_pos == adv_pos:
+            for dir, move in enumerate(moves):
+                # if barrier between current pos and move, continue
+                if chess_board[cur_pos[0], cur_pos[1], dir]:
                     continue
                 
-                # Check if the move was visited before
+                # set new position
+                next_pos = tuple(np.array(cur_pos) + np.array(move))
+                #if cell is already visited, continue
                 if next_pos in visited:
                     continue
-                
-                valid_moves.append((next_pos, dir))
+
+                # if position is adversary position, continue
+                if np.array_equal(next_pos, adv_pos):
+                    continue
+
+                # now that we can go to next_pos, check all four possible barrier placements
                 visited.add(next_pos)
                 state_queue.append((next_pos, cur_step + 1))
 
+        #now add possible valid moves in next_pos when there is no barrier
+        for pos in visited:
+            for i in range(4):
+                if chess_board[pos[0], pos[1], i]:
+                    continue
+                valid_moves.append((pos, i))
+
         return valid_moves
+
+    
 
     def move_in(self, chess_board, move):
         """
