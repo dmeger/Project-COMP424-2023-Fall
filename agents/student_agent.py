@@ -233,7 +233,37 @@ class StudentAgent(Agent):
         """
 
         return 0.25 * (1-self.chasing_adversary_heuristic(chess_board, move, adv_pos, max_step)) + 0.25 * (1-self.center_heuristic(chess_board, move, adv_pos, max_step)) + 0.25 * (1-self.blocking_adversary_heuristic(chess_board, move, adv_pos, max_step))
-
+    
+    def get_tree(self, chess_board, my_pos, adv_pos, max_step):
+        tree = {}
+        valid_moves = self.all_valid_moves(chess_board, my_pos, max_step, adv_pos)
+        for move in valid_moves:
+            subtree = {}
+            new_board = self.move_in(chess_board, move)
+            new_pos = move[0]
+            valid_adv_moves = self.all_valid_moves(new_board, adv_pos, max_step, new_pos)
+            for adv_move in valid_adv_moves:
+                new_board2 = self.move_in(new_board, adv_move)
+                score = self.combined_heuristic(new_board2, adv_move, new_pos, max_step)
+                subtree[adv_move] = score
+            tree[move] = subtree
+        return tree
+            
+    def minimax_decision(self, tree):
+        min = 10000
+        value = {}
+        for move, adv_move in tree.items():
+            for adv, score in adv_move.items():
+                if score < min:
+                    min = score
+            value[move] = min
+        max = -10000
+        best_move = ((0,0),0)
+        for move, val in value.items():
+            if val > max:
+                max = val
+                best_move = move
+        return best_move
 
 
 
@@ -255,24 +285,24 @@ class StudentAgent(Agent):
         """
 
         start_time = time.time()
-
+        tree = self.get_tree(chess_board, my_pos, adv_pos, max_step)
+        best_move = self.minimax_decision(tree)
         #get all valid moves given initial position and chess board
-        valid_moves = self.all_valid_moves(chess_board, my_pos, max_step, adv_pos)
+    #    valid_moves = self.all_valid_moves(chess_board, my_pos, max_step, adv_pos)
 
         #loop through all valid moves and compute the heuristic value for each move
-        heuristic_values = []
-        for move in valid_moves:
-            heuristic_values.append(self.combined_heuristic(chess_board, move, adv_pos, max_step))
+    #    heuristic_values = []
+    #    for move in valid_moves:
+    #        heuristic_values.append(self.combined_heuristic(chess_board, move, adv_pos, max_step))
 
         #get the index of the move with the maximum heuristic value
-        index = np.argmax(heuristic_values)
+    #    index = np.argmax(heuristic_values)
 
         #get the move with the maximum heuristic value
-        best_move = valid_moves[index]
+    #    best_move = valid_moves[index]
 
         time_taken = time.time() - start_time
         
         #print("My AI's turn took ", time_taken, "seconds.")
-
         #return the move with the maximum heuristic value
         return best_move
