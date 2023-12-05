@@ -10,17 +10,16 @@ import random
 #possible move steps: up, right, down, left
 moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
 
-
 @register_agent("student_agent")
 class StudentAgent(Agent):
     """
     A dummy class for your implementation. Feel free to use this class to
     add any helper functionalities needed for your agent.
     """
-
     def __init__(self):
         super(StudentAgent, self).__init__()
         self.name = "StudentAgent"
+        self.MOVE_NUMBER = 0
         self.dir_map = {
             "u": 0,
             "r": 1,
@@ -285,22 +284,28 @@ class StudentAgent(Agent):
         """
 
         start_time = time.time()
-        tree = self.get_tree(chess_board, my_pos, adv_pos, max_step)
-        best_move = self.minimax_decision(tree)
+        print(self.MOVE_NUMBER)
+        if self.MOVE_NUMBER > max_step:
+            print("HEEERE")
+            tree = self.get_tree(chess_board, my_pos, adv_pos, max_step)
+            best_move = self.minimax_decision(tree)
+        else:
+
         #get all valid moves given initial position and chess board
-    #    valid_moves = self.all_valid_moves(chess_board, my_pos, max_step, adv_pos)
+            valid_moves = self.all_valid_moves(chess_board, my_pos, max_step, adv_pos)
 
         #loop through all valid moves and compute the heuristic value for each move
-    #    heuristic_values = []
-    #    for move in valid_moves:
-    #        heuristic_values.append(self.combined_heuristic(chess_board, move, adv_pos, max_step))
+            heuristic_values = []
+            for move in valid_moves:
+                heuristic_values.append(self.combined_heuristic(chess_board, move, adv_pos, max_step))
 
         #get the index of the move with the maximum heuristic value
-    #    index = np.argmax(heuristic_values)
+            index = np.argmax(heuristic_values)
 
         #get the move with the maximum heuristic value
-    #    best_move = valid_moves[index]
+            best_move = valid_moves[index]
 
+        self.MOVE_NUMBER+=1
         time_taken = time.time() - start_time
         
         #print("My AI's turn took ", time_taken, "seconds.")
