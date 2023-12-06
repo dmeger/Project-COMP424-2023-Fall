@@ -6,13 +6,10 @@ import numpy as np
 from copy import deepcopy
 import time
 
+moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
 
 @register_agent("student_agent")
 class StudentAgent(Agent):
-    """
-    A dummy class for your implementation. Feel free to use this class to
-    add any helper functionalities needed for your agent.
-    """
 
     def __init__(self):
         super(StudentAgent, self).__init__()
@@ -25,119 +22,128 @@ class StudentAgent(Agent):
         }
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
-        """
-        Implement the step function of your agent here.
-        You can use the following variables to access the chess board:
-        - chess_board: a numpy array of shape (x_max, y_max, 4)
-        - my_pos: a tuple of (x, y)
-        - adv_pos: a tuple of (x, y)
-        - max_step: an integer
 
-        You should return a tuple of ((x, y), dir),
-        where (x, y) is the next position of your agent and dir is the direction of the wall
-        you want to put on.
+        #start_time = time.time()
+        #time_taken = time.time() - start_time
+        #print("My AI's turn took ", time_taken, "seconds.")
 
-        Please check the sample implementation in agents/random_agent.py or agents/human_agent.py for more details.
-        """
+        # include directions
+        m_r, m_c = my_pos
+        my_pos = (m_r, m_c, 0)
 
-        # Some simple code to help you with timing. Consider checking 
-        # time_taken during your search and breaking with the best answer
-        # so far when it nears 2 seconds.
-        start_time = time.time()
-        time_taken = time.time() - start_time
-        
-        print("My AI's turn took ", time_taken, "seconds.")
-        # Translate the observation into your game state representation
-
-        # Implement the alpha-beta search algorithm
-        # Initialize alpha and beta values
-        alpha = float('-inf')
-        beta = float('inf')
-
-        # Initially call the max_value function
-        best_score, best_move = self.max_value(chess_board, my_pos, adv_pos, max_step, alpha, beta, 0)
-        return best_move
-
-        # dummy return
-        # return my_pos, self.dir_map["u"]
-
-    def max_value(self, chess_board, my_pos, adv_pos, max_step, alpha, beta, depth):
-        # Check for terminal state or maximum depth
-        if self.is_terminal(chess_board, my_pos):
-            return self.evaluate(chess_board), None
-        
         v = float('-inf')
-        best_move = None
-        allowed_dirs = self.get_possible_moves(chess_board, my_pos, adv_pos, max_step)
-        for move in allowed_dirs:
-            # Apply the move
-            new_board = self.apply_move(chess_board, my_pos, move)
-            # Call min_value
-            min_v, _ = self.min_value(new_board, alpha, beta, depth + 1)
-            if min_v > v:
-                v = min_v
-                best_move = move
-            if v >= beta:
-                return v, best_move
-            alpha = max(alpha, v)
-        return v, best_move
+        list_best_moves = []
 
-    def min_value(self, chess_board, my_pos, adv_pos, max_step, alpha, beta, depth):
-        # Check for terminal state or maximum depth
-        if self.is_terminal(chess_board, my_pos):
-            return self.evaluate(chess_board), None
-
-        v = float('inf')
-        best_move = None
-        allowed_dirs = self.get_possible_moves(chess_board, my_pos, adv_pos, max_step)
-        for move in allowed_dirs:
+        for moves in self.allowed_moves(chess_board, (m_r, m_c), max_step, adv_pos):
             # Apply the move
-            new_board = self.apply_move(chess_board, move)
-            # Call max_value
-            max_v, _ = self.max_value(new_board, alpha, beta, depth + 1)
-            if max_v < v:
-                v = max_v
-                best_move = move
-            if v <= alpha:
-                return v, best_move
-            beta = min(beta, v)
-        return v, best_move
+            chess_board = self.apply_move(chess_board, moves)
+            
+            if self.is_terminal(chess_board, moves):
+                value = self.evaluate(chess_board, moves, adv_pos, max_step)
+            else:
+                # call min_value
+                value = self.min_value(chess_board, moves, adv_pos, max_step)
+            if value > v:
+                v = value
+                list_best_moves.clear()
+                list_best_moves.append(moves)
+
+            if value == v:
+                list_best_moves.append(moves)
+
+        a = 0
+        if len(list_best_moves) > 1:
+            length_list = len(list_best_moves)
+            a = np.random.randint(0, length_list)
+
+        r, c, d = list_best_moves[a]
+        return (r, c), d
     
-    def evaluate(self, state):
-        # Evaluate the game state and return a heuristic score
-        # ...
-        return 0
+    def max_value(self, chess_board, original_position, adv_pos, max_step): 
+        v = float('-inf')
+        m_r, m_c, m_d = original_position
+        for moves in self.allowed_moves(chess_board, (m_r, m_c), max_step, adv_pos):
+            chess_board = self.apply_move(chess_board, moves)
+            score = self.evaluate(chess_board, moves, adv_pos, max_step)
+            if score > v:
+                v = score
+        return v
+
+    def min_value(self, chess_board, original_position, adv_pos, max_step):
+        v = float('inf')
+        m_r, m_c, m_d = original_position
+        for moves in self.allowed_moves(chess_board, adv_pos, max_step, (m_r, m_c)):
+            chess_board = self.apply_move(chess_board, moves)
+            score = self.evaluate(chess_board, original_position, adv_pos, max_step)
+            if score < v:
+                v = score
+
+        return v
+
+    def check_boundary(self, chess_board, pos):
+        r, c = pos
+        si = int(chess_board[0].size/4)
+        si = si - 1
+        return 0 <= r < si and 0 <= c < si
+
+    def check_valid_step(self, chess_board, start_pos, end_pos, barrier_dir, max_step1, adv_pos):
+        # Endpoint already has barrier or is boarder
+        chess_board = deepcopy(chess_board)
+
+        r, c = end_pos
+
+        if not self.check_boundary(chess_board, end_pos):
+            return False
+
+        if chess_board[r, c, barrier_dir]:
+            return False
+        
+        return True
+
+    def allowed_moves(self, chess_board, my_pos, max_step, adv_pos):
+
+        move_list = []      # Initialize a list of moves
+        r, c = my_pos       # separate my_pos into x and y coordinates
+        r1 = r - max_step   
+        c1 = c              
+
+        # for each direction move and wall for max_step
+        for d in range(4):
+            for x in range(max_step + 1):
+                for y in range(-x, x + 1, 1):
+                    if self.check_valid_step(chess_board, my_pos, (r1 + x, c1 + y), d, max_step, adv_pos):
+                        move_list.append((r1 + x, c1 + y, d))
+
+            r2 = r + max_step
+            c2 = c
+            for x in range(max_step - 1, -1, -1):
+                for y in range(-x, x + 1, 1):
+                    if self.check_valid_step(chess_board, my_pos, (r2-x,c2-y), d, max_step, adv_pos):
+                        move_list.append((r2 - x, c2 - y, d))
+
+        return move_list
 
     def is_terminal(self, chess_board, my_pos):
         #code taken from random_agent.py
         
-        r, c = my_pos
-        # Possibilities, any direction such that chess_board is False
+        r, c, d = my_pos
         allowed_barriers=[i for i in range(0,4) if not chess_board[r,c,i]]
-        # Sanity check, no way to be fully enclosed in a square, else game already ended
         return not(len(allowed_barriers)>=1) 
-
-    def get_possible_moves(self, chess_board, my_pos, adv_pos, max_step):
-        # Generate and return all possible legal moves from the current state
-        #CODE USED FROM random_agent.py
+    
+    def evaluate(self, chess_board, my_pos, adv_pos, max_step):
+        # Evaluate the game state and return a heuristic score
+        m_r, m_c, m_d = my_pos
         
-        moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
-        allowed_moves = []
-        for step in range(max_step):
-            r, c = my_pos
-            
-            allowed_dirs = [ d                                
-                for d in range(0,4)                           # 4 moves possible
-                if not chess_board[r,c,d] and                 # chess_board True means wall
-                not adv_pos == (r+moves[d][0],c+moves[d][1])] # cannot move through Adversary
-
-            if len(allowed_dirs)==0:
-                # If no possible move, we must be enclosed by our Adversary
-                break
-
-        return allowed_dirs
-
-    def apply_move(self, state, move):
+        score1 = len(self.allowed_moves(chess_board, (m_r, m_c), max_step, adv_pos))
+        score2 = len(self.allowed_moves(chess_board, adv_pos, max_step, (m_r, m_c)))
+        score = score1 - score2
+        
+        return score
+    
+    def apply_move(self, chess_board, move):
         # Apply a move to the state and return the new state
-        # ...
-        return 0
+        chess_board = deepcopy(chess_board)
+        r, c, d = move
+
+        chess_board[r, c, d] = True
+        return chess_board
