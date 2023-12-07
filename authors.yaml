@@ -1,7 +1,6 @@
-- name: "Your full name as appears on your transcript"
-  mcgill_id: "Your mcgill id"
-  email: "email@mail.mcgill.ca"
-
-- name: "Your full name as appears on your transcript"
-  mcgill_id: "Your mcgill id"
-  email: "email@mail.mcgill.ca"
+- name: Justin Randisi
+  mcgill_id: "260987866"
+  email: "justin.randisi@mail.mcgill.ca"
+- name: Max Eskenazi
+  mcgill_id: "260786847"
+  email: "maximillian.eskenazi@mail.mcgill.ca" 
