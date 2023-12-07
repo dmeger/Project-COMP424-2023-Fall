@@ -22,7 +22,7 @@ class StudentAgent(Agent):
         }
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
-        max_depth = 5
+        max_depth = 3
         start_time = time.time()
 
         alpha = float('-inf')
@@ -53,6 +53,7 @@ class StudentAgent(Agent):
                 break
 
         i = 0
+        print(len(best_moves))
         if len(best_moves) > 1:
             length_list = len(best_moves)
             i = np.random.randint(0, length_list)
