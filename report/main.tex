@@ -7,6 +7,8 @@
 \usepackage[T1]{fontenc}
 \usepackage{tikz, tikz-qtree}
 \usepackage{forest,calc}
+\usepackage{graphicx}
+\graphicspath{ {./images/} }
 \forestset{
     make tab/.style args={#1:#2:#3/#4:#5:#6/#7:#8:#9}{%
         content={%
@@ -180,6 +182,7 @@ The values in the leaves are computed using the $\texttt{combined\_heuristic}$ m
     increase the chances of having more blocks in the final score. This heuristic is closely related to the Chasing Heuristic.
     \item \textbf{Center Heuristic}: This heuristic tries to check the position after the move relative to the center of the chessboard. This is based on the idea that if controlling the center of the chessboard,
     will usually lead to the agent controlling more blocks and in a defensive manner, the agent will be less likely to be cornered and have more valid moves.
+    \item \textbf{Block-Endgame Heuristic}: Makes sure that the move is not blocking our agent into a corner and lose.
     \item \textbf{Endgame Heuristic}: This heuristic is used to check if the game is in an endgame state, where the agent will try to finish the game if it's in a winning position, and avoid the move otherwise.
 \end{enumerate}
 
@@ -201,13 +204,50 @@ whether the move is valid or not using the move validity conditions that were gi
 This BFS queue algorithm will efficiently generate all possible moves given our initial state.
 \\
 
-Now that we have a list of all possible moves, we can create a mirror list for heuristic value for each move. This is done by looping through the $\texttt{valid\_moves}$ list and calling
+Now, our algorithm first generates a tree of possible moves, alternating between our student agent and the opponent at each depth level. Once you get to the leaves, you compute their heuristics.  Then, it applies the $\alpha - \beta$ minimax
+ algorithm on the tree, and returns the move corresponding to the maximum value in the root node.
 \\
 
-After 
+This makes the code in the $\texttt{step}$ method look overly simple, as the only call is:
+
+\begin{equation*}
+    \texttt{best\_move = self.minimax\_decision(self.get\_tree(chess\_board, my\_pos, adv\_pos, max\_step))}
+\end{equation*}
+
 
 \section{Quantitative analysis and results}
 
+\subsection{Analysis}
+
+Let's break down the complexity of our algorithm. The $\texttt{all\_valid\_moves}$ has a worst-runtime of $O(2K(K+1))$ (BFS, so worst case is you visit all moves within $K$, which is twice the triangle of size $K(K+1)$) where $K$ is the maximum number of steps.
+\\
+
+Some of our heuristics run in constant time $O(1)$, and others call $\texttt{check\_endgame}$ or $\texttt{all\_valid\_moves}$ which have complexity $O(M^2)$ and $O(2K(K+1))$ respectively. $K$ depends on $M$, so we can say that both
+have complexity $O(K^2)$. Now, our combined Heuristic is a linear combination of the subheuristics, so it has complexity $O(K^2)$ too.
+\\
+
+The heuristic is called for each leaf node, which at depth 2, there are at most $K^2$ leaf nodes, so total complexity for building the tree is $O(K^4)$.
+\\
+
+Now that we have the tree we will minimax on, applying minimax has a worst-case runtime of $O(K^4)$ (amortized is $O(K^2))$, So the total runtime complexity of our algorithm is $\boxed{O(K^4)}$.
+
+\subsection{Results}
+
+Here are the results of our agent against a random agent, in $100$ and $1000$ games of chessboard size between $6$ and $12$:
+\\
+
+$100$ games:
+\begin{center}
+\includegraphics*[scale=0.3]{1}
+\end{center}
+
+$1000$ games:
+\begin{center}
+\includegraphics*[scale=0.3]{2}
+\end{center}
+
+As you can see, our agent performs quite well against a random agent, with a winrate of $~99\%$ in $1000$ games. This is quite impressive, coupled with the fact that our agent
+only uses $~0.2s$ per turn, which is around $10\%$ of the $2$ seconds runtime limit. This shows that our agent is quite efficient, and can be used in real-time applications.
 \section{Discussion}
 
 \subsection{Advantages and Disadvantages}
@@ -215,7 +255,7 @@ After
 Our algorithm has many advantages:
 
 \begin{itemize}
-    \item Minimax is a deterministic algorithm, so it will always give the same output for the same input. It is also complete, so it will always find a solution if it exists in finite time.
+    \item Minimax is a deterministic algorithm, so it will always give the same output for rthe same input. It is also complete, so it will always find a solution if it exists in finite time.
     \item Algorithm will yield an optimal solution if the heuristic is near-perfect, and assuming opponent plays optimally.
     \item Uses $O(k^2)$ space, where $k$ is the maximum number of steps allowed in each move.
     \item Aggressive play-style by trying to corner the opponent and look for an endgame, can finish the game quickly if given the opportunity, which is in accordance with using depth$=2$.
@@ -228,7 +268,7 @@ However, it also has some disadvantages, such as:
     \item The algorithm doesn't perform well against a random agent, due to the randomness of the agent's moves, and the fact that minimax's pessimistic nature assumes the opponent will play optimally.
     \item Contrary to other game-playing algorithms, such as MCTS, minimax doesn't utilitize a random component and/or backpropagation, which can be useful in some cases. If you go down a wrong path, you will keep going down that path, and not explore other paths.
     \item Against opponents employing different tactics or defensive play styles, our agent might struggle to adapt and perform suboptimally.
-    \item The runtime is still the same same as simple Minimax, which is $O(k^4)$, that is bad. Though with pruning, the amortized runtime is $O(\sqrt{k^4}) =  O(k^2)$. This is still quite a large runtime, especially for the cases where the chessboard is $12$ by $12$.
+    \item The runtime is still the same same as simple Minimax, which is $O(k^4)$, that is bad. Though with pruning, the amortized runtime is $O(\sqrt{k^4}) =  O(k^2)$\footnote[2]{Edwards, Hart, The Alpha-beta Heuristic}. This is still quite a large runtime, especially for the cases where the chessboard is $12$ by $12$.
 \end{itemize}
 
 \subsection{Alternative approaches}
@@ -277,11 +317,7 @@ an ongoing endeavor, fueling future advancements in game-playing AI.
 \end{flushleft}
 
 \begin{flushleft}
-    Charles Hermite; letter to C.W. Borchardt, "Men of Mathematics", E. T. Bell, New York 1937, p. 464.
-\end{flushleft}
-
-\begin{flushleft}
-    Simmons, George F.. Calculus Gems: Brief Lives and Memorable Mathematics. United States, American Mathematical Society, 2020.
+    Edwards, D.J.; Hart, T.P. (4 December 1961). The Alpha–beta Heuristic (Technical report). Massachusetts Institute of Technology.
 \end{flushleft}
 
 \end{document}
